@@ -1,7 +1,7 @@
 <div align="center">
 
   <!-- Header Banner & Typing Animation -->
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=Hi%20there,%20I'm%20Wildan&fontSize=42&fontAlignY=38&desc=Software%20Engineer%20%7C%20Backend%20Developer&descAlignY=58&descAlign=50" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=Hi%20there,%20I'm%20Wildchu&fontSize=42&fontAlignY=38&desc=Software%20Engineer%20%7C%20Backend%20Developer&descAlignY=58&descAlign=50" width="100%" />
 
   <a href="https://git.io/typing-svg">
     <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=61AFEF&center=true&vCenter=true&width=435&lines=Building+scalable+backend+systems;Exploring+AI+automation+%26+tools;Always+learning+new+tech" alt="Typing SVG" />
