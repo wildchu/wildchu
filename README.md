@@ -4,6 +4,7 @@
 
   <br/><br/>
 
-  <img src="./profile-card.svg" width="100%" alt="Wildchu System Profile" />
+  <!-- Tambahkan parameter ?v=2 agar browser/GitHub memaksa load file SVG terbaru -->
+  <img src="./profile-card.svg?v=2" width="100%" alt="Wildchu System Profile" />
 
 </div>
