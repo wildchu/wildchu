@@ -77,7 +77,8 @@ def main():
             commits = cc["totalCommitContributions"] + cc["restrictedContributionsCount"]
             cal = cc["contributionCalendar"]
             total_contribs = cal["totalContributions"]
-            weeks = cal["weeks"][-42:]
+            # Diperbaiki agar mengambil seluruh minggu penuh tanpa pemotongan agar sinkron dengan GitHub
+            weeks = cal["weeks"]
 
     total_size = sum(v["size"] for v in lang_map.values()) or 1
     sorted_langs = sorted(lang_map.items(), key=lambda x: x[1]["size"], reverse=True)[:10]
@@ -111,7 +112,7 @@ def main():
     for w_idx, week in enumerate(weeks):
         for d_idx, day in enumerate(week["contributionDays"]):
             cnt = day["contributionCount"]
-            x = w_idx * 19
+            x = w_idx * 16
             y = d_idx * 16
             extra_class = ""
             if cnt == 0:
@@ -129,7 +130,7 @@ def main():
             else:
                 color = "#ffe4e6"
                 extra_class = 'class="pulse-hot"'
-            pulse_cells += f'<rect x="{x}" y="{y}" width="14" height="12" rx="3" fill="{color}" {extra_class} />\n'
+            pulse_cells += f'<rect x="{x}" y="{y}" width="12" height="12" rx="2.5" fill="{color}" {extra_class} />\n'
 
     svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 920" width="100%" height="100%">
   <defs>
@@ -184,7 +185,7 @@ def main():
   <!-- Main Card Background -->
   <rect width="900" height="920" rx="18" fill="#090b10" stroke="#181c26" stroke-width="1.5" />
 
-  <!-- Animated Ambient Orbs (Breathing & Floating Effect like ACE) -->
+  <!-- Animated Ambient Orbs -->
   <ellipse cx="330" cy="155" rx="280" ry="130" fill="url(#purpleGlow)">
     <animate attributeName="rx" values="260;310;260" dur="9s" repeatCount="indefinite" />
     <animate attributeName="cx" values="330;355;330" dur="11s" repeatCount="indefinite" />
@@ -198,18 +199,15 @@ def main():
   </ellipse>
   <ellipse cx="700" cy="670" rx="220" ry="110" fill="url(#purpleGlow)" />
 
-  <!-- Subtle Radar Circles Behind Hero (ACE Signature Effect) -->
   <circle cx="450" cy="155" r="105" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1" />
   <circle cx="450" cy="155" r="145" fill="none" stroke="#ff2a4b" stroke-opacity="0.04" stroke-width="1" stroke-dasharray="4 6" />
 
-  <!-- Twinkling Star Particles -->
   <circle cx="95" cy="115" r="2" fill="#ff2a4b" class="star-1" />
   <circle cx="805" cy="175" r="2.2" fill="#a855f7" class="star-2" />
   <circle cx="740" cy="95" r="1.5" fill="#ffffff" class="star-3" />
   <circle cx="155" cy="235" r="1.5" fill="#c084fc" class="star-2" />
   <circle cx="320" cy="700" r="1.8" fill="#ff4d6d" class="star-1" />
 
-  <!-- HUD Corner Brackets -->
   <path d="M 35 48 L 35 35 L 48 35" fill="none" stroke="#ff2a4b" stroke-width="2" stroke-linecap="round" />
   <path d="M 865 48 L 865 35 L 852 35" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" />
   <path d="M 35 282 L 35 295 L 48 295" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" />
