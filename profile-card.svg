@@ -55,7 +55,7 @@
 
   <!-- HERO TEXT -->
   <text x="457" y="115" text-anchor="middle" class="title" filter="url(#textGlow)">WILDCHU</text>
-  <text x="450" y="160" text-anchor="middle" class="role">S O F T W A R E   E N G I N E E R</text>
+  <text x="450" y="160" text-anchor="middle" class="role">H A V I N G  F U N</text>
   <text x="450" y="200" text-anchor="middle" class="subrole">BACKEND DEVELOPER | AI AUTOMATION</text>
   <text x="450" y="226" text-anchor="middle" class="techline">REST APIs • AI BOTS • C++ PLUGINS • SERVER AUTOMATION</text>
   <text x="450" y="258" text-anchor="middle" class="link">github.com/wildchu</text>
