@@ -1,0 +1,37 @@
+name: Generate Live Profile SVG
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # Otomatis update tiap 6 jam
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Bisa diklik manual kapan saja
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate Live SVG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python generate_svg.py
+
+      - name: Commit & Push updated SVG
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add profile-card.svg
+          git diff --staged --quiet || git commit -m "chore: update live profile telemetry"
+          git push
