@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import urllib.request
 
@@ -21,6 +22,21 @@ def fetch_graphql(query):
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
+def fetch_public_contributions(username):
+    """Mengambil kalender kontribusi publik langsung dari halaman GitHub agar sinkron dengan grafik profil."""
+    try:
+        url = f"https://github.com/users/{username}/contributions"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as resp:
+            html = resp.read().decode("utf-8")
+        
+        # Ambil angka total contributions dari header
+        m_total = re.search(r"([\d,]+)\s+contributions?\s+in\s+the\s+last\s+year", html, re.IGNORECASE)
+        total = int(m_total.group(1).replace(",", "")) if m_total else None
+        return total
+    except Exception:
+        return None
+
 def main():
     query = """
     query {
@@ -40,12 +56,17 @@ def main():
         }
         contributionsCollection {
           totalCommitContributions
+          totalIssueContributions
+          totalPullRequestContributions
+          totalPullRequestReviewContributions
+          totalRepositoryContributions
           restrictedContributionsCount
           contributionCalendar {
             totalContributions
             weeks {
               contributionDays {
                 contributionCount
+                weekday
               }
             }
           }
@@ -74,11 +95,17 @@ def main():
                     lang_map[lname]["size"] += edge["size"]
 
             cc = user["contributionsCollection"]
-            commits = cc["totalCommitContributions"] + cc["restrictedContributionsCount"]
             cal = cc["contributionCalendar"]
             total_contribs = cal["totalContributions"]
-            # Diperbaiki agar mengambil seluruh minggu penuh tanpa pemotongan agar sinkron dengan GitHub
+            commits = cc["totalCommitContributions"] + cc["restrictedContributionsCount"]
             weeks = cal["weeks"]
+
+    # Cek apakah halaman publik menampilkan angka total yang lebih lengkap (termasuk anonymized private contributions)
+    pub_total = fetch_public_contributions(USERNAME)
+    if pub_total and pub_total > total_contribs:
+        total_contribs = pub_total
+        if commits < total_contribs:
+            commits = total_contribs
 
     total_size = sum(v["size"] for v in lang_map.values()) or 1
     sorted_langs = sorted(lang_map.items(), key=lambda x: x[1]["size"], reverse=True)[:10]
@@ -90,9 +117,12 @@ def main():
 
     for idx, (lname, ldata) in enumerate(sorted_langs):
         pct = round((ldata["size"] / total_size) * 100, 1)
-        w = max(8, int((ldata["size"] / total_size) * total_bar_width))
-        if cur_x + w > total_bar_width:
-            w = max(0, total_bar_width - cur_x)
+        # Jika elemen terakhir, paskan sisa lebar bar agar rata kanan di 790px
+        if idx == len(sorted_langs) - 1:
+            w = max(8, total_bar_width - cur_x)
+        else:
+            w = max(8, int((ldata["size"] / total_size) * total_bar_width) - 4)
+        
         if w > 0:
             bar_svg += f'<rect x="{cur_x}" y="0" width="{w}" height="9" rx="4.5" fill="{ldata["color"]}" />'
             cur_x += w + 4
@@ -100,20 +130,26 @@ def main():
         row = idx // 5
         col = idx % 5
         lx = col * 160
-        ly = row * 32
+        ly = row * 30
         legend_svg += f'''
         <g transform="translate({lx}, {ly})">
           <circle cx="6" cy="-4" r="5" fill="{ldata["color"]}" />
           <text x="18" y="0" class="lang-name">{lname}</text>
-          <text x="105" y="0" class="lang-pct">{pct}%</text>
+          <text x="95" y="0" class="lang-pct">{pct}%</text>
         </g>'''
+
+    # Hitung ukuran & jarak grid Activity Pulse agar pas tepat 790px (dari x=55 sampai x=845, tidak kepotong)
+    num_weeks = len(weeks) or 53
+    step_x = 14.9  # 53 minggu * 14.9 = ~789.7px (pas dengan lebar bar 790px)
+    step_y = 15
 
     pulse_cells = ""
     for w_idx, week in enumerate(weeks):
         for d_idx, day in enumerate(week["contributionDays"]):
             cnt = day["contributionCount"]
-            x = w_idx * 16
-            y = d_idx * 16
+            weekday = day.get("weekday", d_idx)
+            x = round(w_idx * step_x, 1)
+            y = weekday * step_y
             extra_class = ""
             if cnt == 0:
                 color = "#12151e"
@@ -130,9 +166,16 @@ def main():
             else:
                 color = "#ffe4e6"
                 extra_class = 'class="pulse-hot"'
-            pulse_cells += f'<rect x="{x}" y="{y}" width="12" height="12" rx="2.5" fill="{color}" {extra_class} />\n'
+            pulse_cells += f'<rect x="{x}" y="{y}" width="11.5" height="11.5" rx="2.5" fill="{color}" {extra_class} />\n'
 
-    svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 920" width="100%" height="100%">
+    # Sesuaikan tinggi kartu secara dinamis berdasarkan jumlah baris bahasa agar tidak ada ruang kosong melompong
+    has_second_lang_row = len(sorted_langs) > 5
+    divider_y = 700 if has_second_lang_row else 670
+    pulse_hdr_y = divider_y + 35
+    pulse_grid_y = pulse_hdr_y + 20
+    card_height = pulse_grid_y + 135
+
+    svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 {card_height}" width="100%" height="100%">
   <defs>
     <radialGradient id="redGlow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ff1e42" stop-opacity="0.42" />
@@ -161,7 +204,7 @@ def main():
       .pill-text {{ font: 600 12px 'Segoe UI', sans-serif; }}
       .stat-num {{ font: 800 30px 'Segoe UI', sans-serif; fill: #ffffff; }}
       .stat-lbl {{ font: 700 10px 'JetBrains Mono', monospace; letter-spacing: 2.5px; }}
-      .sec-hdr {{ font: 700 11px 'JetBrains Mono', monospace; fill: #ff3355; letter-spacing: 3.5px; }}
+      .sec-hdr {{ font: 700 11px 'JetBrains Mono', monospace; fill: #ff3355; letter-spacing: 3px; }}
       .lang-name {{ font: 600 12px 'Segoe UI', sans-serif; fill: #e5e7eb; }}
       .lang-pct {{ font: 400 11px 'JetBrains Mono', monospace; fill: #9ca3af; }}
       .divider {{ stroke: #181c26; stroke-width: 1; }}
@@ -183,7 +226,7 @@ def main():
   </defs>
 
   <!-- Main Card Background -->
-  <rect width="900" height="920" rx="18" fill="#090b10" stroke="#181c26" stroke-width="1.5" />
+  <rect x="2" y="2" width="896" height="{card_height - 4}" rx="18" fill="#090b10" stroke="#181c26" stroke-width="1.5" />
 
   <!-- Animated Ambient Orbs -->
   <ellipse cx="330" cy="155" rx="280" ry="130" fill="url(#purpleGlow)">
@@ -197,7 +240,7 @@ def main():
   <ellipse cx="450" cy="480" rx="340" ry="95" fill="url(#redGlow)">
     <animate attributeName="opacity" values="0.7;1;0.7" dur="6s" repeatCount="indefinite" />
   </ellipse>
-  <ellipse cx="700" cy="670" rx="220" ry="110" fill="url(#purpleGlow)" />
+  <ellipse cx="700" cy="650" rx="220" ry="100" fill="url(#purpleGlow)" />
 
   <circle cx="450" cy="155" r="105" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1" />
   <circle cx="450" cy="155" r="145" fill="none" stroke="#ff2a4b" stroke-opacity="0.04" stroke-width="1" stroke-dasharray="4 6" />
@@ -206,7 +249,7 @@ def main():
   <circle cx="805" cy="175" r="2.2" fill="#a855f7" class="star-2" />
   <circle cx="740" cy="95" r="1.5" fill="#ffffff" class="star-3" />
   <circle cx="155" cy="235" r="1.5" fill="#c084fc" class="star-2" />
-  <circle cx="320" cy="700" r="1.8" fill="#ff4d6d" class="star-1" />
+  <circle cx="320" cy="{divider_y - 10}" r="1.8" fill="#ff4d6d" class="star-1" />
 
   <path d="M 35 48 L 35 35 L 48 35" fill="none" stroke="#ff2a4b" stroke-width="2" stroke-linecap="round" />
   <path d="M 865 48 L 865 35 L 852 35" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" />
@@ -263,7 +306,7 @@ def main():
   <line x1="40" y1="535" x2="860" y2="535" class="divider" />
 
   <!-- LIVE STACK ANALYTICS -->
-  <text x="55" y="572" class="sec-hdr">S T A C K   A N A L Y T I C S</text>
+  <text x="55" y="572" class="sec-hdr">STACK&#160;&#160;ANALYTICS</text>
   <g transform="translate(55, 592)">
     {bar_svg}
   </g>
@@ -271,13 +314,13 @@ def main():
     {legend_svg}
   </g>
 
-  <line x1="40" y1="705" x2="860" y2="705" class="divider" />
+  <line x1="40" y1="{divider_y}" x2="860" y2="{divider_y}" class="divider" />
 
   <!-- LIVE ACTIVITY PULSE -->
-  <text x="55" y="740" class="sec-hdr">A C T I V I T Y   P U L S E</text>
-  <text x="845" y="740" text-anchor="end" class="lang-pct">{total_contribs} contributions</text>
+  <text x="55" y="{pulse_hdr_y}" class="sec-hdr">ACTIVITY&#160;&#160;PULSE</text>
+  <text x="845" y="{pulse_hdr_y}" text-anchor="end" class="lang-pct">{total_contribs} contributions</text>
 
-  <g transform="translate(55, 760)">
+  <g transform="translate(55, {pulse_grid_y})">
     {pulse_cells}
   </g>
 </svg>'''
