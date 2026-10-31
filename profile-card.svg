@@ -524,6 +524,7 @@
 <rect x="774.8" y="45" width="11.5" height="11.5" rx="2.5" fill="#ffe4e6" class="pulse-hot" />
 <rect x="774.8" y="60" width="11.5" height="11.5" rx="2.5" fill="#4c0519"  />
 <rect x="774.8" y="75" width="11.5" height="11.5" rx="2.5" fill="#12151e"  />
+<rect x="774.8" y="90" width="11.5" height="11.5" rx="2.5" fill="#12151e"  />
 
   </g>
 </svg>
